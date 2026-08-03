@@ -10,43 +10,63 @@ const Body = z.object({
 
 export async function POST(req: NextRequest) {
   const parsed = Body.safeParse(await req.json());
+
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid body" },
+      { status: 400 }
+    );
   }
+
   const { draft } = parsed.data;
 
-  // docx package is CommonJS; unwrap default under dynamic import
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // Dynamically import docx
   const mod: any = await import("docx").catch(() => null);
+
   if (!mod) {
     return NextResponse.json(
       { error: "docx package not installed. Run: npm install docx" },
       { status: 500 }
     );
   }
-  const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = mod;
+
+  const {
+    Document,
+    Packer,
+    Paragraph,
+    TextRun,
+    AlignmentType,
+  } = mod;
 
   const now = new Date();
+
   const dateStr = now.toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
   });
 
-  // Split draft into paragraphs. Preserve blank lines as paragraph breaks.
   const rawLines = draft.split(/\r?\n/);
+
   const bodyParagraphs = rawLines.map(
-    (line) =>
+    (line: string) =>
       new Paragraph({
-        children: [new TextRun({ text: line, font: "Calibri", size: 22 })],
-        spacing: { after: 100 },
+        children: [
+          new TextRun({
+            text: line,
+            font: "Calibri",
+            size: 22,
+          }),
+        ],
+        spacing: {
+          after: 100,
+        },
       })
   );
 
   const doc = new Document({
     creator: "ProEd Coder AI",
     title: "Physician Query",
-    styles: {},
     sections: [
       {
         properties: {},
@@ -62,8 +82,11 @@ export async function POST(req: NextRequest) {
               }),
             ],
             alignment: AlignmentType.LEFT,
-            spacing: { after: 60 },
+            spacing: {
+              after: 60,
+            },
           }),
+
           new Paragraph({
             children: [
               new TextRun({
@@ -73,8 +96,11 @@ export async function POST(req: NextRequest) {
                 color: "374151",
               }),
             ],
-            spacing: { after: 40 },
+            spacing: {
+              after: 40,
+            },
           }),
+
           new Paragraph({
             children: [
               new TextRun({
@@ -84,9 +110,13 @@ export async function POST(req: NextRequest) {
                 color: "6B7280",
               }),
             ],
-            spacing: { after: 240 },
+            spacing: {
+              after: 240,
+            },
           }),
+
           ...bodyParagraphs,
+
           new Paragraph({
             children: [
               new TextRun({
@@ -95,8 +125,11 @@ export async function POST(req: NextRequest) {
                 size: 18,
               }),
             ],
-            spacing: { before: 240 },
+            spacing: {
+              before: 240,
+            },
           }),
+
           new Paragraph({
             children: [
               new TextRun({
@@ -107,22 +140,24 @@ export async function POST(req: NextRequest) {
                 color: "6B7280",
               }),
             ],
-            spacing: { before: 120 },
+            spacing: {
+              before: 120,
+            },
           }),
         ],
       },
     ],
   });
 
-  const buffer: Buffer = await Packer.toBuffer(doc);
+  const buffer = await Packer.toBuffer(doc);
 
-  return new NextResponse(buffer, {
+  return new NextResponse(new Uint8Array(buffer), {
     status: 200,
     headers: {
       "Content-Type":
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "Content-Disposition": `attachment; filename="physician-query-${Date.now()}.docx"`,
-      "Content-Length": String(buffer.length),
+      "Content-Length": buffer.length.toString(),
     },
   });
 }
