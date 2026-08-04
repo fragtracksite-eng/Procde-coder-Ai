@@ -7,6 +7,7 @@ import { embed, toPgVector } from "@/lib/embeddings";
 // Transformers.js needs the Node runtime (not Edge) — it uses ONNX Runtime
 // and native modules that don't work in the Edge runtime.
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 const Body = z.object({ query: z.string().min(2).max(500) });
 

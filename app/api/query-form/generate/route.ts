@@ -9,6 +9,8 @@ import {
 import { retrievePolicyChunks } from "@/lib/policy-retrieval";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";   // 👈 yeh line add karein
+
 
 const Body = z.object({
   scenario: z.string().min(10).max(4000),
